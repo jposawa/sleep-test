@@ -1,0 +1,26 @@
+# --- Working specs / plans (not part of the deliverable) ---
+# Ignore everything under specs/ by default...
+/specs/**
+# ...except base instructions (global practices, coding standards, patterns),
+# which SHOULD be versioned. Whitelist them here as they are added, e.g.:
+!/specs/standards/
+!/specs/standards/**
+!/specs/README.md
+
+# --- Gradle / build artifacts ---
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/gradle/wrapper/gradle-wrapper.jar
+
+# --- Docker local Postgres data volume (docker-compose ./db) ---
+/db/
+
+# --- IDE ---
+.idea/
+*.iml
+.vscode/
+
+# --- OS ---
+.DS_Store
+Thumbs.db
