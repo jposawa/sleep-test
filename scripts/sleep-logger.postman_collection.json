@@ -1,0 +1,241 @@
+{
+  "info": {
+    "name": "Sleep Logger API",
+    "description": "Exercises the sleep logger API. Start the stack with `docker-compose up --build` first.\n\nRun the requests in order: the first one shows the empty state, so it only returns 404 while the user has no sleep logs.\n\nVariables `bedStart` and `bedEnd` are filled in by a collection pre-request script so the sample night always falls inside the 30-day window.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "userId", "value": "1" }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Last night: in bed from 10:53 pm to 7:05 am at UTC-3, which is 01:53",
+          "// to 10:05 UTC on the same calendar day.",
+          "const bedEnd = new Date();",
+          "bedEnd.setUTCHours(10, 5, 0, 0);",
+          "const bedStart = new Date(bedEnd.getTime() - (8 * 60 + 12) * 60000);",
+          "pm.collectionVariables.set('bedStart', bedStart.toISOString());",
+          "pm.collectionVariables.set('bedEnd', bedEnd.toISOString());"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Last night - empty state (404)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('404 while the user has no sleep logs', function () {",
+              "    pm.response.to.have.status(404);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "X-User-Id", "value": "{{userId}}" }],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/sleep-logs/last-night",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "sleep-logs", "last-night"]
+        },
+        "description": "Requirement 1C. The UI renders its empty state on this response."
+      }
+    },
+    {
+      "name": "Create a sleep log (201)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('created', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "pm.test('total time in bed is derived from the interval', function () {",
+              "    pm.expect(pm.response.json().totalMinutesInBed).to.eql(492);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "X-User-Id", "value": "{{userId}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"bedStart\": \"{{bedStart}}\",\n  \"bedEnd\": \"{{bedEnd}}\",\n  \"morningFeeling\": \"GOOD\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/sleep-logs",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "sleep-logs"]
+        },
+        "description": "Requirement 1. The date of the sleep is carried by the interval, so it is not a separate field."
+      }
+    },
+    {
+      "name": "Last night (200)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('returns the sleep that was just created', function () {",
+              "    pm.response.to.have.status(200);",
+              "    pm.expect(pm.response.json().morningFeeling).to.eql('GOOD');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "X-User-Id", "value": "{{userId}}" }],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/sleep-logs/last-night",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "sleep-logs", "last-night"]
+        },
+        "description": "Requirement 1B."
+      }
+    },
+    {
+      "name": "30-day averages (200)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('reports the window and the feeling frequencies', function () {",
+              "    pm.response.to.have.status(200);",
+              "    const body = pm.response.json();",
+              "    pm.expect(body).to.have.property('from');",
+              "    pm.expect(body).to.have.property('to');",
+              "    pm.expect(body.feelingFrequencies).to.have.all.keys('BAD', 'OK', 'GOOD');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "X-User-Id", "value": "{{userId}}" }],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/sleep-logs/averages",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "sleep-logs", "averages"]
+        },
+        "description": "Requirement 3. Average bedtime and wake time are times of day reported in UTC; a client shifts them into its own offset."
+      }
+    },
+    {
+      "name": "Reject a sleep that ends before it starts (400)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('rejected with a usable message', function () {",
+              "    pm.response.to.have.status(400);",
+              "    pm.expect(pm.response.json().message).to.eql('bedEnd must be after bedStart');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "X-User-Id", "value": "{{userId}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"bedStart\": \"{{bedEnd}}\",\n  \"bedEnd\": \"{{bedStart}}\",\n  \"morningFeeling\": \"OK\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/sleep-logs",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "sleep-logs"]
+        }
+      }
+    },
+    {
+      "name": "Reject an unknown morning feeling (400)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('rejected', function () {",
+              "    pm.response.to.have.status(400);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "X-User-Id", "value": "{{userId}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"bedStart\": \"{{bedStart}}\",\n  \"bedEnd\": \"{{bedEnd}}\",\n  \"morningFeeling\": \"GREAT\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/sleep-logs",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "sleep-logs"]
+        }
+      }
+    },
+    {
+      "name": "Reject a request without the user header (400)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('names the missing header', function () {",
+              "    pm.response.to.have.status(400);",
+              "    pm.expect(pm.response.json().message).to.include('X-User-Id');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/sleep-logs/last-night",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "sleep-logs", "last-night"]
+        },
+        "description": "Authentication is out of scope, but the user is not optional."
+      }
+    }
+  ]
+}
