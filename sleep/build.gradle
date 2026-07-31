@@ -42,3 +42,22 @@ tasks.named('bootBuildImage') {
 tasks.named('test') {
 	useJUnitPlatform()
 }
+
+// Repository tests are tagged 'integration' and need the PostgreSQL instance
+// from docker-compose. 'test' still runs everything; these two tasks exist so
+// each half can be run on its own.
+tasks.register('testUnit', Test) {
+	useJUnitPlatform {
+		excludeTags 'integration'
+	}
+	testClassesDirs = sourceSets.test.output.classesDirs
+	classpath = sourceSets.test.runtimeClasspath
+}
+
+tasks.register('testIntegration', Test) {
+	useJUnitPlatform {
+		includeTags 'integration'
+	}
+	testClassesDirs = sourceSets.test.output.classesDirs
+	classpath = sourceSets.test.runtimeClasspath
+}
