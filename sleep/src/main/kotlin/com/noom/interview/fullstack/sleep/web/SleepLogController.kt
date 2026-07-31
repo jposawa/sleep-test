@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
+import javax.validation.Valid
 
 /**
  * Authentication is out of scope, so the caller states who it is through
@@ -24,7 +25,7 @@ class SleepLogController(private val service: SleepLogService) {
     @ResponseStatus(HttpStatus.CREATED)
     fun create(
         @RequestHeader(USER_ID_HEADER) userId: Long,
-        @RequestBody request: CreateSleepLogRequest
+        @Valid @RequestBody request: CreateSleepLogRequest
     ): SleepLogResponse =
         SleepLogResponse.from(
             service.create(
