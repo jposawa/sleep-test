@@ -25,11 +25,13 @@ class SleepLogRepository(private val jdbcTemplate: NamedParameterJdbcTemplate) {
             .addValue("morningFeeling", morningFeeling.name)
 
         // RETURNING gives back the generated row in the same round trip, so the
-        // caller never has to re-read what was just written.
+        // caller never has to re-read what was just written. The feeling is cast
+        // explicitly because the driver sends it as text, and the column is an
+        // enum type.
         return jdbcTemplate.queryForObject(
             """
             INSERT INTO sleep_log (user_id, bed_start, bed_end, morning_feeling)
-            VALUES (:userId, :bedStart, :bedEnd, :morningFeeling)
+            VALUES (:userId, :bedStart, :bedEnd, CAST(:morningFeeling AS morning_feeling))
             RETURNING $COLUMNS
             """.trimIndent(),
             parameters,
