@@ -39,21 +39,17 @@ tasks.named('bootBuildImage') {
 	builder = 'paketobuildpacks/builder-jammy-base:latest'
 }
 
+// Repository tests are tagged 'integration' because they need the PostgreSQL
+// instance from docker-compose. They are excluded from 'test' so that the
+// Dockerfile shipped with the template keeps working unchanged: it runs
+// 'gradlew build', which happens while no database exists.
 tasks.named('test') {
-	useJUnitPlatform()
-}
-
-// Repository tests are tagged 'integration' and need the PostgreSQL instance
-// from docker-compose. 'test' still runs everything; these two tasks exist so
-// each half can be run on its own.
-tasks.register('testUnit', Test) {
 	useJUnitPlatform {
 		excludeTags 'integration'
 	}
-	testClassesDirs = sourceSets.test.output.classesDirs
-	classpath = sourceSets.test.runtimeClasspath
 }
 
+// Run with the stack up:  docker-compose up -d db && ./gradlew testIntegration
 tasks.register('testIntegration', Test) {
 	useJUnitPlatform {
 		includeTags 'integration'
