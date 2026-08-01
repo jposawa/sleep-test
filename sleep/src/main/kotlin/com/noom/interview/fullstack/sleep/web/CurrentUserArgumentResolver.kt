@@ -24,7 +24,7 @@ class CurrentUserArgumentResolver : HandlerMethodArgumentResolver {
             ?: throw UnidentifiedCallerException("Missing required header: $USER_ID_HEADER")
 
         return header.toLongOrNull()
-            ?: throw UnidentifiedCallerException("$USER_ID_HEADER must be a numeric user id")
+            ?: throw UnidentifiedCallerException("Invalid $USER_ID_HEADER")
     }
 
     companion object {

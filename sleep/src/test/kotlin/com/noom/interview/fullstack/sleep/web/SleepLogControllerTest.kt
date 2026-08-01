@@ -87,7 +87,7 @@ class SleepLogControllerTest {
     fun `rejects a user id that is not a number`() {
         mockMvc.perform(get("$SLEEP_LOGS/last-night").header(USER_HEADER, "not-a-number"))
             .andExpect(status().isBadRequest)
-            .andExpect(jsonPath("$.message").value("$USER_HEADER must be a numeric user id"))
+            .andExpect(jsonPath("$.message").value("Invalid $USER_HEADER"))
 
         verifyNoInteractions(service)
     }
