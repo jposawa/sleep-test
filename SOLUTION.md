@@ -33,8 +33,9 @@ curl -X POST http://localhost:8080/api/v1/sleep-logs \
 ```
 
 The date of a sleep is carried by `bedStart`; there is no separate date field,
-because resolving a calendar date needs a timezone this API does not take. See
-[Assumptions](#assumptions).
+because resolving a calendar date needs a timezone this API does not take. The
+heading the wireframe shows over last night's sleep - "November, 13th" - is
+`bedStart` rendered in the reader's own zone. See [Assumptions](#assumptions).
 
 Because authentication is out of scope, an unknown user id is not rejected as
 such: `last-night` reports the empty state, `averages` reports an empty window,
@@ -73,11 +74,10 @@ is no edit path in this version, so `updated_at` will equal `created_at` until
 one exists.
 
 **Editing a sleep log is not implemented**, and that is a decision rather than an
-oversight. Correcting a mistyped time is a real need - the requirements list
-creating, fetching last night and reporting averages, and nothing else, so an
-edit endpoint would be answering a question that was not asked. The column is
-there because writing down when a row changed is cheap; the endpoint is not,
-because it widens what the service does.
+oversight. Correcting a mistyped time is a real need, but the requirements list
+creating, fetching last night and reporting averages and nothing else, and none
+of the three panels in the wireframe offers a way to edit: the one showing last
+night's sleep is read-only, with a single control that switches to the averages.
 
 ## Assumptions
 
