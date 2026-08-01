@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 import com.noom.interview.fullstack.sleep.domain.MorningFeeling
 import com.noom.interview.fullstack.sleep.domain.SleepAverages
 import com.noom.interview.fullstack.sleep.domain.SleepLog
+import com.noom.interview.fullstack.sleep.service.InvalidSleepIntervalException
 import java.time.Instant
 import java.time.LocalTime
 import javax.validation.constraints.AssertTrue
@@ -27,12 +28,8 @@ data class CreateSleepLogRequest(
     val morningFeeling: MorningFeeling
 ) {
     @JsonIgnore
-    @AssertTrue(message = INTERVAL_ORDERED_MESSAGE)
+    @AssertTrue(message = InvalidSleepIntervalException.INTERVAL_ORDERED_MESSAGE)
     fun isIntervalOrdered(): Boolean = bedEnd.isAfter(bedStart)
-
-    companion object {
-        const val INTERVAL_ORDERED_MESSAGE = "bedEnd must be after bedStart"
-    }
 }
 
 /**

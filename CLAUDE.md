@@ -1,9 +1,7 @@
 # CLAUDE.md — Engineering Rules & Project Guide
 
 Base instructions for any agent (or human) working in this repository. These are
-durable rules; they are versioned. The evolving, task-specific attack plan lives
-in `specs/PLANO_DE_ATAQUE.md` (git-ignored working doc — read it for current
-strategy, PR sequence, and open decisions).
+durable rules; they are versioned.
 
 ---
 
@@ -46,8 +44,9 @@ strategy, PR sequence, and open decisions).
 REST API for a **sleep logger**, to be integrated into Noom's web interface.
 Three functional requirements, mapping to the three wireframe panels:
 
-- **REQ 1 (create + fetch last night):** create a sleep log for last night;
-  fetch last night's sleep. Empty state (wireframe REQ 1C) when none exists.
+- **REQ 1 (create):** create a sleep log for last night.
+- **REQ 2 (fetch last night):** fetch last night's sleep. Empty state
+  (wireframe REQ 1C) when none exists.
 - **REQ 3 (30-day averages):** date range, average time in bed, average
   bedtime/wake time, and frequency of each morning feeling `[BAD, OK, GOOD]`.
 
@@ -74,6 +73,11 @@ ever disagree, the README wins — and flag the discrepancy.
 
 - **Repository:** integration tests against the compose Postgres with Flyway
   migrations. **Do not** add Testcontainers or other infra (README line 42).
+- **Every test that needs the database must carry `@Tag("integration")`.** The
+  `test` task excludes that tag, which is what lets the Dockerfile's
+  `gradlew build` succeed while no database exists. An untagged repository test
+  breaks `docker-compose up --build`. Run them with the stack up:
+  `./gradlew testIntegration`.
 - **Service / business logic:** plain unit tests (JUnit + AssertJ, already on
   the classpath). Cover the logic that carries risk: average computations,
   feeling frequencies, circular time-of-day averaging, "last night" resolution,
@@ -96,12 +100,3 @@ ever disagree, the README wins — and flag the discrepancy.
 - Full stack: `docker-compose up --build` (needs Docker Desktop; ports 5432 +
   8080). On Windows, ensure Docker Desktop is running first.
 - The compose file builds `./sleep` and starts Postgres with a healthcheck.
-
-## 6. Working docs
-
-- `specs/PLANO_DE_ATAQUE.md` — current attack plan (git-ignored). Read it for the
-  live PR sequence, architecture decisions, identified gotchas, and the
-  done-when checklist. Keep it updated as decisions change.
-- Base/durable instructions (this file, coding standards, patterns) are
-  versioned. Whitelist any versioned specs under `specs/standards/` in
-  `.gitignore` as they are added.

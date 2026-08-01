@@ -5,9 +5,8 @@ import com.noom.interview.fullstack.sleep.domain.SleepAverages
 import com.noom.interview.fullstack.sleep.domain.SleepLog
 import com.noom.interview.fullstack.sleep.service.SleepLogService
 import org.junit.jupiter.api.Test
+import org.hamcrest.Matchers.nullValue
 import org.mockito.BDDMockito.given
-import org.mockito.Mockito.never
-import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoInteractions
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
@@ -128,9 +127,10 @@ class SleepLogControllerTest {
         mockMvc.perform(get("$SLEEP_LOGS/averages").header(USER_HEADER, USER_ID))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.sleepCount").value(0))
-            .andExpect(jsonPath("$.averageMinutesInBed").doesNotExist())
-
-        verify(service, never()).findLastNight(USER_ID)
+            // The field is present and null rather than omitted: an explicit
+            // null says "no average", which a missing key would not.
+            .andExpect(jsonPath("$.averageMinutesInBed").value(nullValue()))
+            .andExpect(jsonPath("$.averageBedStartUtc").value(nullValue()))
     }
 
     private fun body(bedStart: Instant, bedEnd: Instant, morningFeeling: String) =

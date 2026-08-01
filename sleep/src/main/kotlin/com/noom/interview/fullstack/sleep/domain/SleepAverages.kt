@@ -30,6 +30,7 @@ data class SleepAverages(
             feelingFrequencies = sleepLogs.feelingFrequencies()
         )
 
+        /** Truncated to the second, which the API reports in whole minutes anyway. */
         private fun List<SleepLog>.averageTimeInBed(): Duration? =
             if (isEmpty()) null else Duration.ofSeconds(sumOf { it.timeInBed.seconds } / size)
 

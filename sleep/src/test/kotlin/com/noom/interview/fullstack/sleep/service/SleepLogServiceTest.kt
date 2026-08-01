@@ -9,12 +9,16 @@ import org.junit.jupiter.api.Test
 import org.mockito.BDDMockito.given
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verifyNoInteractions
+import java.time.Clock
+import java.time.Duration
 import java.time.Instant
+import java.time.ZoneOffset
 
 class SleepLogServiceTest {
 
     private val repository = mock(SleepLogRepository::class.java)
-    private val service = SleepLogService(repository)
+    private val clock = Clock.fixed(NOW, ZoneOffset.UTC)
+    private val service = SleepLogService(repository, clock)
 
     @Test
     fun `stores a sleep whose interval is ordered`() {
@@ -61,6 +65,30 @@ class SleepLogServiceTest {
         assertThat(service.findLastNight(USER_ID)).isEqualTo(latest)
     }
 
+    @Test
+    fun `averages the sleeps started in the thirty days before now`() {
+        val from = NOW.minus(Duration.ofDays(30))
+        given(repository.findByUserIdAndBedStartBetween(USER_ID, from, NOW))
+            .willReturn(listOf(sleepLog(BED_START, BED_END)))
+
+        val averages = service.findLast30DayAverages(USER_ID)
+
+        assertThat(averages.from).isEqualTo(from)
+        assertThat(averages.to).isEqualTo(NOW)
+        assertThat(averages.sleepCount).isEqualTo(1)
+    }
+
+    @Test
+    fun `reports an empty window rather than failing when nothing was logged`() {
+        val from = NOW.minus(Duration.ofDays(30))
+        given(repository.findByUserIdAndBedStartBetween(USER_ID, from, NOW)).willReturn(emptyList())
+
+        val averages = service.findLast30DayAverages(USER_ID)
+
+        assertThat(averages.sleepCount).isZero
+        assertThat(averages.averageTimeInBed).isNull()
+    }
+
     private fun sleepLog(bedStart: Instant, bedEnd: Instant) = SleepLog(
         id = 1L,
         userId = USER_ID,
@@ -71,6 +99,7 @@ class SleepLogServiceTest {
 
     private companion object {
         const val USER_ID = 1L
+        val NOW: Instant = Instant.parse("2026-11-14T12:00:00Z")
         val BED_START: Instant = Instant.parse("2026-11-14T01:53:00Z")
         val BED_END: Instant = Instant.parse("2026-11-14T10:05:00Z")
     }
