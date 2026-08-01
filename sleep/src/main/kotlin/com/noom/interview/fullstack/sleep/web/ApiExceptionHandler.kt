@@ -5,7 +5,6 @@ import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.http.HttpStatus
 import org.springframework.http.converter.HttpMessageNotReadableException
 import org.springframework.web.bind.MethodArgumentNotValidException
-import org.springframework.web.bind.MissingRequestHeaderException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestControllerAdvice
@@ -43,10 +42,11 @@ class ApiExceptionHandler {
     fun handleUnreadableBody(exception: HttpMessageNotReadableException) =
         ApiError("Malformed request body")
 
-    @ExceptionHandler(MissingRequestHeaderException::class)
+    /** The request did not say which user it is acting for. */
+    @ExceptionHandler(UnidentifiedCallerException::class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    fun handleMissingHeader(exception: MissingRequestHeaderException) =
-        ApiError("Missing required header: ${exception.headerName}")
+    fun handleUnidentifiedCaller(exception: UnidentifiedCallerException) =
+        ApiError(exception.message ?: "Caller is not identified")
 
     /** A constraint the service did not catch, e.g. a user id that does not exist. */
     @ExceptionHandler(DataIntegrityViolationException::class)

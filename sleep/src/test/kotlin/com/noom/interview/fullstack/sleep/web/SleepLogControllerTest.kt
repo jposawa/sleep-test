@@ -79,6 +79,17 @@ class SleepLogControllerTest {
         mockMvc.perform(get("$SLEEP_LOGS/last-night"))
             .andExpect(status().isBadRequest)
             .andExpect(jsonPath("$.message").value("Missing required header: $USER_HEADER"))
+
+        verifyNoInteractions(service)
+    }
+
+    @Test
+    fun `rejects a user id that is not a number`() {
+        mockMvc.perform(get("$SLEEP_LOGS/last-night").header(USER_HEADER, "not-a-number"))
+            .andExpect(status().isBadRequest)
+            .andExpect(jsonPath("$.message").value("Invalid $USER_HEADER"))
+
+        verifyNoInteractions(service)
     }
 
     @Test

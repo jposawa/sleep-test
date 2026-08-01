@@ -62,7 +62,7 @@ at_utc() {
 
 echo "Testing $SLEEP_LOGS as user $USER_ID"
 
-if ! curl -s -o /dev/null --max-time 5 "$BASE_URL/test"; then
+if ! curl -s -o /dev/null --max-time 5 "$SLEEP_LOGS/last-night"; then
 	echo
 	echo "No API answering at $BASE_URL - start the stack first:"
 	echo '  docker-compose up --build -d'
