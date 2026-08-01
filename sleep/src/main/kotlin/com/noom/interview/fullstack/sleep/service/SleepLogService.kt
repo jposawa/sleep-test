@@ -9,12 +9,20 @@ import java.time.Clock
 import java.time.Duration
 import java.time.Instant
 
-class InvalidSleepIntervalException(message: String) : RuntimeException(message)
+class InvalidSleepIntervalException(message: String) : RuntimeException(message) {
+    companion object {
+        /**
+         * Stated once, so that the controller and the service cannot end up
+         * rejecting the same request with different words.
+         */
+        const val INTERVAL_ORDERED_MESSAGE = "bedEnd must be after bedStart"
+    }
+}
 
 @Service
 class SleepLogService(
     private val repository: SleepLogRepository,
-    /** Injected so the 30-day window can be pinned in tests. */
+    /** Injected so the 30-day window can be pinned - see SleepLogServiceTest. */
     private val clock: Clock = Clock.systemUTC()
 ) {
 
@@ -30,7 +38,9 @@ class SleepLogService(
         morningFeeling: MorningFeeling
     ): SleepLog {
         if (!bedEnd.isAfter(bedStart)) {
-            throw InvalidSleepIntervalException("bedEnd must be after bedStart")
+            throw InvalidSleepIntervalException(
+                InvalidSleepIntervalException.INTERVAL_ORDERED_MESSAGE
+            )
         }
         return repository.create(userId, bedStart, bedEnd, morningFeeling)
     }

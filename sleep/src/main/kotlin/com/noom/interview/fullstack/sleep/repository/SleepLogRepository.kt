@@ -36,7 +36,7 @@ class SleepLogRepository(private val jdbcTemplate: NamedParameterJdbcTemplate) {
             """.trimIndent(),
             parameters,
             SleepLogRowMapper
-        )!!
+        ) ?: error("INSERT ... RETURNING produced no row")
     }
 
     /**

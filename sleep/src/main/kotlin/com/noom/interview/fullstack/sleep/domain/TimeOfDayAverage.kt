@@ -5,6 +5,7 @@ import java.time.LocalTime
 import java.time.ZoneOffset
 import kotlin.math.atan2
 import kotlin.math.cos
+import kotlin.math.hypot
 import kotlin.math.sin
 
 /**
@@ -23,10 +24,12 @@ object TimeOfDayAverage {
 
     private const val MINUTES_PER_DAY = 24 * 60
     private const val RADIANS_PER_MINUTE = 2 * Math.PI / MINUTES_PER_DAY
+    private const val NEGLIGIBLE = 1e-9
 
     /**
-     * Null for an empty input, and also when the times are spread so evenly
-     * around the clock that they cancel out and no direction is meaningful.
+     * Null for an empty input, and for times whose unit vectors sum to
+     * effectively nothing - two sleeps twelve hours apart, say - because no
+     * direction is then more central than another.
      */
     fun of(instants: Collection<Instant>): LocalTime? {
         if (instants.isEmpty()) return null
@@ -39,7 +42,9 @@ object TimeOfDayAverage {
             y += sin(angle)
         }
 
-        if (x.isNegligible() && y.isNegligible()) return null
+        // Measured on the mean vector rather than on the sum, so that the same
+        // spread is judged the same way whatever the sample size.
+        if (hypot(x, y) / instants.size < NEGLIGIBLE) return null
 
         val meanAngle = atan2(y / instants.size, x / instants.size)
         val meanMinute = Math.round(meanAngle / RADIANS_PER_MINUTE)
@@ -48,6 +53,4 @@ object TimeOfDayAverage {
 
     private fun Instant.minuteOfDayUtc(): Int =
         atZone(ZoneOffset.UTC).toLocalTime().toSecondOfDay() / 60
-
-    private fun Double.isNegligible() = kotlin.math.abs(this) < 1e-9
 }

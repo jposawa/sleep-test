@@ -32,6 +32,15 @@ curl -X POST http://localhost:8080/api/v1/sleep-logs \
        "morningFeeling":"GOOD"}'
 ```
 
+The date of a sleep is carried by `bedStart`; there is no separate date field,
+because resolving a calendar date needs a timezone this API does not take. See
+[Assumptions](#assumptions).
+
+Because authentication is out of scope, an unknown user id is not rejected as
+such: `last-night` reports the empty state, `averages` reports an empty window,
+and creating a log fails on the foreign key. Validating that a user exists would
+be authorization semantics, which the assignment asks to ignore.
+
 ## Design
 
 **The interval is the only stored temporal fact.** Total time in bed and the
@@ -59,6 +68,17 @@ is a closed set of three values, so the column cannot hold anything else.
 **Nothing limits a user to one sleep per night.** Naps are legitimate entries,
 and the requirements do not ask for the restriction.
 
+`sleep_log` carries `created_at` and `updated_at` as an audit convention. There
+is no edit path in this version, so `updated_at` will equal `created_at` until
+one exists.
+
+**Editing a sleep log is not implemented**, and that is a decision rather than an
+oversight. Correcting a mistyped time is a real need - the requirements list
+creating, fetching last night and reporting averages, and nothing else, so an
+edit endpoint would be answering a question that was not asked. The column is
+there because writing down when a row changed is cheap; the endpoint is not,
+because it widens what the service does.
+
 ## Assumptions
 
 The requirements describe a sleep log as carrying "the date of the sleep
@@ -85,6 +105,10 @@ only governs ordering and the 30-day window.
   and the values agree.
 
 ## Tests
+
+Both commands need **JDK 17**, the version the Dockerfile builds with. On an
+older JDK the Kotlin compiler still emits bytecode 17 and the failure only
+surfaces when the JVM refuses to load the test classes.
 
 ```bash
 ./gradlew test              # unit tests, no database needed
