@@ -16,6 +16,8 @@ class InvalidSleepIntervalException(message: String) : RuntimeException(message)
          * rejecting the same request with different words.
          */
         const val INTERVAL_ORDERED_MESSAGE = "bedEnd must be after bedStart"
+
+        const val NOT_IN_FUTURE_MESSAGE = "bedEnd must not be in the future"
     }
 }
 
@@ -40,6 +42,19 @@ class SleepLogService(
         if (!bedEnd.isAfter(bedStart)) {
             throw InvalidSleepIntervalException(
                 InvalidSleepIntervalException.INTERVAL_ORDERED_MESSAGE
+            )
+        }
+        // A sleep being logged is a sleep that ended, so the later end is the
+        // one to check: with the ordering rule above, bedStart then lies in the
+        // past as well, and a separate check on it could never fire.
+        //
+        // This rule sits here and not on the request DTO because it needs a
+        // clock. Bean validation would have to read the system clock, leaving
+        // two sources of "now" for a single rule; the service already has one
+        // injected, which is also what makes the rule testable.
+        if (bedEnd.isAfter(clock.instant())) {
+            throw InvalidSleepIntervalException(
+                InvalidSleepIntervalException.NOT_IN_FUTURE_MESSAGE
             )
         }
         return repository.create(userId, bedStart, bedEnd, morningFeeling)

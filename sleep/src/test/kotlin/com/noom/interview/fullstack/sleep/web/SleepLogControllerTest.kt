@@ -3,9 +3,10 @@ package com.noom.interview.fullstack.sleep.web
 import com.noom.interview.fullstack.sleep.domain.MorningFeeling
 import com.noom.interview.fullstack.sleep.domain.SleepAverages
 import com.noom.interview.fullstack.sleep.domain.SleepLog
+import com.noom.interview.fullstack.sleep.service.InvalidSleepIntervalException
 import com.noom.interview.fullstack.sleep.service.SleepLogService
-import org.junit.jupiter.api.Test
 import org.hamcrest.Matchers.nullValue
+import org.junit.jupiter.api.Test
 import org.mockito.BDDMockito.given
 import org.mockito.Mockito.verifyNoInteractions
 import org.springframework.beans.factory.annotation.Autowired
@@ -44,6 +45,30 @@ class SleepLogControllerTest {
             .andExpect(status().isCreated)
             .andExpect(jsonPath("$.totalMinutesInBed").value(492))
             .andExpect(jsonPath("$.morningFeeling").value("GOOD"))
+    }
+
+    /**
+     * Whether a sleep has already ended depends on a clock, so the service owns
+     * that rule. What the web layer owes is turning its refusal into a 400 that
+     * repeats the reason.
+     */
+    @Test
+    fun `reports a sleep that has not finished yet as a bad request`() {
+        given(service.create(USER_ID, BED_START, BED_END, MorningFeeling.GOOD))
+            .willThrow(
+                InvalidSleepIntervalException(InvalidSleepIntervalException.NOT_IN_FUTURE_MESSAGE)
+            )
+
+        mockMvc.perform(
+            post(SLEEP_LOGS)
+                .header(USER_HEADER, USER_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body(BED_START, BED_END, "GOOD"))
+        )
+            .andExpect(status().isBadRequest)
+            .andExpect(
+                jsonPath("$.message").value(InvalidSleepIntervalException.NOT_IN_FUTURE_MESSAGE)
+            )
     }
 
     @Test

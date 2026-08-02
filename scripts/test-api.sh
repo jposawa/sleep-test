@@ -51,6 +51,11 @@ post_sleep() {
 #
 # A night spent in bed from 10:53 pm to 7:05 am at UTC-3 runs from 01:53 to
 # 10:05 UTC, so in UTC both ends fall on the same calendar day.
+#
+# Every night below is anchored at least one day back, which is what keeps the
+# sample data in the past whatever time the script runs: a clock time today may
+# still be ahead of now, and the API refuses a sleep that has not ended. Both
+# ends of a night must share the same offset, or the interval itself changes.
 at_utc() {
 	local days_ago="$1" clock="$2"
 	if date -v-1d >/dev/null 2>&1; then
@@ -84,7 +89,7 @@ fi
 echo
 echo 'Requirement 1 - create a sleep log'
 post_sleep 'last night, 10:53 pm to 7:05 am' 201 \
-	"{\"bedStart\":\"$(at_utc 0 01:53:00)\",\"bedEnd\":\"$(at_utc 0 10:05:00)\",\"morningFeeling\":\"GOOD\"}"
+	"{\"bedStart\":\"$(at_utc 1 01:53:00)\",\"bedEnd\":\"$(at_utc 1 10:05:00)\",\"morningFeeling\":\"GOOD\"}"
 
 echo
 echo 'Requirement 1B - fetch last night'
@@ -104,6 +109,15 @@ post_sleep 'a nap on the same day as the third night' 201 \
 check '30-day averages' 200 -H "X-User-Id: $USER_ID" "$SLEEP_LOGS/averages"
 echo "       $LAST_BODY"
 
+# Asserting the status alone would not notice a sleep silently missing from the
+# window - which is exactly what happens when a logged instant is in the future.
+if printf '%s' "$LAST_BODY" | grep -q '"sleepCount":4'; then
+	printf '  ok   %-46s %s\n' 'every logged sleep counted in the window' 4
+else
+	printf '  FAIL %-46s %s\n' 'every logged sleep counted in the window' 'expected 4'
+	failures=$((failures + 1))
+fi
+
 echo
 echo 'Averages for a user with no sleeps stay a valid answer'
 check 'averages, empty window' 200 -H 'X-User-Id: 4242' "$SLEEP_LOGS/averages"
@@ -111,9 +125,11 @@ check 'averages, empty window' 200 -H 'X-User-Id: 4242' "$SLEEP_LOGS/averages"
 echo
 echo 'Rejected requests'
 post_sleep 'a sleep that ends before it starts' 400 \
-	"{\"bedStart\":\"$(at_utc 0 10:05:00)\",\"bedEnd\":\"$(at_utc 0 01:53:00)\",\"morningFeeling\":\"OK\"}"
+	"{\"bedStart\":\"$(at_utc 1 10:05:00)\",\"bedEnd\":\"$(at_utc 1 01:53:00)\",\"morningFeeling\":\"OK\"}"
+post_sleep 'a sleep that has not finished yet' 400 \
+	"{\"bedStart\":\"$(at_utc 1 01:53:00)\",\"bedEnd\":\"2099-01-01T00:00:00Z\",\"morningFeeling\":\"OK\"}"
 post_sleep 'a feeling outside BAD, OK, GOOD' 400 \
-	"{\"bedStart\":\"$(at_utc 0 01:53:00)\",\"bedEnd\":\"$(at_utc 0 10:05:00)\",\"morningFeeling\":\"GREAT\"}"
+	"{\"bedStart\":\"$(at_utc 1 01:53:00)\",\"bedEnd\":\"$(at_utc 1 10:05:00)\",\"morningFeeling\":\"GREAT\"}"
 post_sleep 'a body that is not valid JSON' 400 '{'
 check 'a request without the user header' 400 "$SLEEP_LOGS/last-night"
 

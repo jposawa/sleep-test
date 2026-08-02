@@ -42,6 +42,11 @@ such: `last-night` reports the empty state, `averages` reports an empty window,
 and creating a log fails on the foreign key. Validating that a user exists would
 be authorization semantics, which the assignment asks to ignore.
 
+Creating a log answers `400` when the interval is not ordered, and when the
+sleep has not ended - a `bedEnd` in the future describes a night still under
+way, which is not something that can be logged. Checking the later end covers
+both: with the ordering rule, `bedStart` then lies in the past as well.
+
 ## Design
 
 **The interval is the only stored temporal fact.** Total time in bed and the

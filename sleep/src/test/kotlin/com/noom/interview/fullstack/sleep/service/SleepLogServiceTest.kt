@@ -34,13 +34,30 @@ class SleepLogServiceTest {
     fun `rejects a sleep that ends before it starts`() {
         assertThatThrownBy { service.create(USER_ID, BED_END, BED_START, MorningFeeling.OK) }
             .isInstanceOf(InvalidSleepIntervalException::class.java)
-            .hasMessage("bedEnd must be after bedStart")
+            .hasMessage(InvalidSleepIntervalException.INTERVAL_ORDERED_MESSAGE)
     }
 
     @Test
     fun `rejects a sleep of zero length`() {
         assertThatThrownBy { service.create(USER_ID, BED_START, BED_START, MorningFeeling.OK) }
             .isInstanceOf(InvalidSleepIntervalException::class.java)
+    }
+
+    @Test
+    fun `rejects a sleep that has not finished yet`() {
+        assertThatThrownBy { service.create(USER_ID, BED_START, NOW.plusSeconds(1), MorningFeeling.OK) }
+            .isInstanceOf(InvalidSleepIntervalException::class.java)
+            .hasMessage(InvalidSleepIntervalException.NOT_IN_FUTURE_MESSAGE)
+
+        verifyNoInteractions(repository)
+    }
+
+    @Test
+    fun `accepts a sleep that ended exactly now`() {
+        val stored = sleepLog(BED_START, NOW)
+        given(repository.create(USER_ID, BED_START, NOW, MorningFeeling.GOOD)).willReturn(stored)
+
+        assertThat(service.create(USER_ID, BED_START, NOW, MorningFeeling.GOOD)).isEqualTo(stored)
     }
 
     @Test
