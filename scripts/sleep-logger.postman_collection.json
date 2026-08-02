@@ -18,6 +18,9 @@
           "// to 10:05 UTC on the same calendar day.",
           "const bedEnd = new Date();",
           "bedEnd.setUTCHours(10, 5, 0, 0);",
+          "// A clock time that has not come round yet today belongs to the",
+          "// previous day; otherwise the sample night would not have happened.",
+          "if (bedEnd > new Date()) bedEnd.setUTCDate(bedEnd.getUTCDate() - 1);",
           "const bedStart = new Date(bedEnd.getTime() - (8 * 60 + 12) * 60000);",
           "pm.collectionVariables.set('bedStart', bedStart.toISOString());",
           "pm.collectionVariables.set('bedEnd', bedEnd.toISOString());"
